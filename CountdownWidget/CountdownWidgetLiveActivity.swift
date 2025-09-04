@@ -10,12 +10,10 @@ import WidgetKit
 import SwiftUI
 
 struct CountdownWidgetAttributes: ActivityAttributes {
-    public struct ContentState: Codable, Hashable {
-        // Dynamic stateful properties about your activity go here!
-        var emoji: String
-    }
+    // Dynamic state (now empty)
+    public struct ContentState: Codable, Hashable { }
 
-    // Fixed non-changing properties about your activity go here!
+    // Fixed, non-changing attributes
     var name: String
 }
 
@@ -24,7 +22,7 @@ struct CountdownWidgetLiveActivity: Widget {
         ActivityConfiguration(for: CountdownWidgetAttributes.self) { context in
             // Lock screen/banner UI goes here
             VStack {
-                Text("Hello \(context.state.emoji)")
+                Text("Hello")
             }
             .activityBackgroundTint(Color.cyan)
             .activitySystemActionForegroundColor(Color.black)
@@ -40,21 +38,23 @@ struct CountdownWidgetLiveActivity: Widget {
                     Text("Trailing")
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    Text("Bottom \(context.state.emoji)")
-                    // more content
+                    Text("Bottom")
                 }
             } compactLeading: {
                 Text("L")
             } compactTrailing: {
-                Text("T \(context.state.emoji)")
+                Text("T")
             } minimal: {
-                Text(context.state.emoji)
+                Text("M")
             }
             .widgetURL(URL(string: "http://www.apple.com"))
             .keylineTint(Color.red)
         }
     }
 }
+
+
+// Preview
 
 extension CountdownWidgetAttributes {
     fileprivate static var preview: CountdownWidgetAttributes {
@@ -63,18 +63,14 @@ extension CountdownWidgetAttributes {
 }
 
 extension CountdownWidgetAttributes.ContentState {
-    fileprivate static var smiley: CountdownWidgetAttributes.ContentState {
-        CountdownWidgetAttributes.ContentState(emoji: "😀")
-     }
-     
-     fileprivate static var starEyes: CountdownWidgetAttributes.ContentState {
-         CountdownWidgetAttributes.ContentState(emoji: "🤩")
-     }
+    // Empty preview state
+    fileprivate static var empty: CountdownWidgetAttributes.ContentState {
+        CountdownWidgetAttributes.ContentState()
+    }
 }
 
 #Preview("Notification", as: .content, using: CountdownWidgetAttributes.preview) {
    CountdownWidgetLiveActivity()
 } contentStates: {
-    CountdownWidgetAttributes.ContentState.smiley
-    CountdownWidgetAttributes.ContentState.starEyes
+    CountdownWidgetAttributes.ContentState.empty
 }
