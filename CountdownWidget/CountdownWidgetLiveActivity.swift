@@ -9,68 +9,73 @@ import ActivityKit
 import WidgetKit
 import SwiftUI
 
-struct CountdownWidgetAttributes: ActivityAttributes {
-    // Dynamic state (now empty)
-    public struct ContentState: Codable, Hashable { }
-
-    // Fixed, non-changing attributes
-    var name: String
-}
-
 struct CountdownWidgetLiveActivity: Widget {
     var body: some WidgetConfiguration {
-        ActivityConfiguration(for: CountdownWidgetAttributes.self) { context in
-            // Lock screen/banner UI goes here
-            VStack {
-                Text("Hello")
+        ActivityConfiguration(for: CountdownAttributes.self) { context in
+            let state = context.state
+            VStack(alignment: .leading, spacing: 8) {
+                Text(state.title)
+                    .font(.headline)
+                Text(state.endDate, style: .timer)
+                    .font(.title).monospacedDigit()
+                ProgressView(value: progress(start: state.startedAt, end: state.endDate))
             }
-            .activityBackgroundTint(Color.cyan)
-            .activitySystemActionForegroundColor(Color.black)
+            .padding(.vertical, 4)
+            .activityBackgroundTint(.secondary.opacity(0.2))
+            .activitySystemActionForegroundColor(.accentColor)
 
         } dynamicIsland: { context in
             DynamicIsland {
                 // Expanded UI goes here.  Compose the expanded UI through
                 // various regions, like leading/trailing/center/bottom
                 DynamicIslandExpandedRegion(.leading) {
-                    Text("Leading")
+                    Image(systemName: "timer")
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text("Trailing")
+                    Text(context.state.endDate, style: .timer)
+                        .monospacedDigit()
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    Text("Bottom")
+                    Text(context.state.title)
                 }
             } compactLeading: {
-                Text("L")
+                Image(systemName: "timer")
             } compactTrailing: {
-                Text("T")
+                Text(context.state.endDate, style: .timer)
+                    .monospacedDigit()
             } minimal: {
-                Text("M")
+                Text(context.state.endDate, style: .timer)
+                    .monospacedDigit()
             }
-            .widgetURL(URL(string: "http://www.apple.com"))
-            .keylineTint(Color.red)
+            .keylineTint(.accentColor)
         }
     }
 }
 
 
 // Preview
-
-extension CountdownWidgetAttributes {
-    fileprivate static var preview: CountdownWidgetAttributes {
-        CountdownWidgetAttributes(name: "World")
+extension CountdownAttributes {
+    fileprivate static var preview: CountdownAttributes {
+        CountdownAttributes()
     }
 }
 
-extension CountdownWidgetAttributes.ContentState {
-    // Empty preview state
-    fileprivate static var empty: CountdownWidgetAttributes.ContentState {
-        CountdownWidgetAttributes.ContentState()
+extension CountdownAttributes.ContentState {
+    fileprivate static var sample: CountdownAttributes.ContentState {
+        let now = Date()
+        return .init(endDate: now.addingTimeInterval(300), startedAt: now, title: "Sample")
     }
 }
 
-#Preview("Notification", as: .content, using: CountdownWidgetAttributes.preview) {
+#Preview("Notification", as: .content, using: CountdownAttributes.preview) {
    CountdownWidgetLiveActivity()
 } contentStates: {
-    CountdownWidgetAttributes.ContentState.empty
+    CountdownAttributes.ContentState.sample
+}
+
+private func progress(start: Date, end: Date) -> Double {
+    let total = end.timeIntervalSince(start)
+    guard total > 0 else { return 1 }
+    let elapsed = Date().timeIntervalSince(start)
+    return max(0, min(1, elapsed / total))
 }

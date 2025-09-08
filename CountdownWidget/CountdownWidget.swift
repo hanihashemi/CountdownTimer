@@ -7,51 +7,59 @@
 
 import WidgetKit
 import SwiftUI
+import Foundation
 
-struct Provider: AppIntentTimelineProvider {
-    func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date(), configuration: ConfigurationAppIntent())
+struct Provider: TimelineProvider {
+    func placeholder(in context: Context) -> Entry {
+        Entry(date: .now, title: "Countdown", endDate: .now.addingTimeInterval(300))
     }
 
-    func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
-        SimpleEntry(date: Date(), configuration: configuration)
+    func getSnapshot(in context: Context, completion: @escaping (Entry) -> Void) {
+        completion(loadShared())
     }
-    
-    func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
-        var entries: [SimpleEntry] = []
 
-        // Generate a timeline consisting of five entries an hour apart, starting from the current date.
-        let currentDate = Date()
-        for hourOffset in 0 ..< 5 {
-            let entryDate = Calendar.current.date(byAdding: .hour, value: hourOffset, to: currentDate)!
-            let entry = SimpleEntry(date: entryDate, configuration: configuration)
-            entries.append(entry)
+    func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> Void) {
+        let entry = loadShared()
+        if let end = entry.endDate {
+            completion(Timeline(entries: [entry], policy: .after(end)))
+        } else {
+            completion(Timeline(entries: [entry], policy: .atEnd))
         }
-
-        return Timeline(entries: entries, policy: .atEnd)
     }
 
-//    func relevances() async -> WidgetRelevances<ConfigurationAppIntent> {
-//        // Generate a list containing the contexts this widget is relevant in.
-//    }
+    private func loadShared() -> Entry {
+        let defaults = UserDefaults(suiteName: Shared.appGroup)
+        let title = defaults?.string(forKey: Shared.Keys.title) ?? "No Active Countdown"
+        if let ts = defaults?.double(forKey: Shared.Keys.endDate), ts > 0 {
+            let end = Date(timeIntervalSince1970: ts)
+            return Entry(date: .now, title: title, endDate: end)
+        }
+        return Entry(date: .now, title: title, endDate: nil)
+    }
 }
 
-struct SimpleEntry: TimelineEntry {
+struct Entry: TimelineEntry {
     let date: Date
-    let configuration: ConfigurationAppIntent
+    let title: String
+    let endDate: Date?
 }
 
-struct CountdownWidgetEntryView : View {
+struct CountdownWidgetEntryView: View {
     var entry: Provider.Entry
 
     var body: some View {
-        VStack {
-            Text("Time:")
-            Text(entry.date, style: .time)
-
-            Text("Favorite Emoji:")
-            Text(entry.configuration.favoriteEmoji)
+        VStack(alignment: .leading) {
+            Text(entry.title)
+                .font(.caption).foregroundStyle(.secondary)
+            if let end = entry.endDate {
+                Text(end, style: .timer)
+                    .font(.title2).monospacedDigit()
+            } else {
+                Text("—")
+                    .font(.title2).monospacedDigit()
+            }
         }
+        .padding(.vertical, 2)
     }
 }
 
@@ -59,10 +67,11 @@ struct CountdownWidget: Widget {
     let kind: String = "CountdownWidget"
 
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: Provider()) { entry in
+        StaticConfiguration(kind: kind, provider: Provider()) { entry in
             CountdownWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
+        .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
 
@@ -83,6 +92,6 @@ extension ConfigurationAppIntent {
 #Preview(as: .systemSmall) {
     CountdownWidget()
 } timeline: {
-    SimpleEntry(date: .now, configuration: .smiley)
-    SimpleEntry(date: .now, configuration: .starEyes)
+    Entry(date: .now, title: "Preview", endDate: .now.addingTimeInterval(300))
+    Entry(date: .now, title: "No Active Countdown", endDate: nil)
 }
